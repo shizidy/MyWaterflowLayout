@@ -20,9 +20,11 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
 @interface WaterFlowLayout ()
 
 /// 存放所有cell的布局属性
-@property (nonatomic, strong) NSMutableArray *attrsArray;
-/// 存放当前列的高度（三列，三个元素）
+@property (nonatomic, strong) NSMutableArray<UICollectionViewLayoutAttributes *> *attrsArray;
+/// 存放当前列的高度（如果设置了三列，就是存三个元素，n列，n个元素）
 @property (nonatomic, strong) NSMutableArray *columnsHeightArray;
+/// 存放与当前的高度columnsHeightArray一一对应的UICollectionViewLayoutAttributes实例
+@property (nonatomic, strong) NSMutableArray<UICollectionViewLayoutAttributes * > *columnAttrsArray;
 /// 内容高度
 @property (nonatomic, assign) CGFloat contentHeight;
 /// 行边距
@@ -44,15 +46,18 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
     
     // 清除以前计算的高度
     [self.columnsHeightArray removeAllObjects];
-    for (int i = 0; i < kDefaultColumnCount; i++) {
+    for (int i = 0; i < self.columnCount; i++) {
         // 添加默认高度
-        [self.columnsHeightArray addObject:@(kDefaultEdgeInsets.top)];
+        [self.columnsHeightArray addObject:@(self.contentEdgeInsets.top)];
     }
+    
+    // 清空存放的attrs
+    [self.columnAttrsArray removeAllObjects];
     
     // 清除之前的布局
     [self.attrsArray removeAllObjects];
-    NSInteger items = [self.collectionView numberOfItemsInSection:0];
-    for (int i = 0; i < items; i++) {
+    NSInteger count = [self.collectionView numberOfItemsInSection:0];
+    for (int i = 0; i < count; i++) {
         NSIndexPath *indexPath = [NSIndexPath indexPathForItem:i inSection:0];
         // 获取布局属性
         UICollectionViewLayoutAttributes *attrs = [self layoutAttributesForItemAtIndexPath:indexPath];
@@ -62,6 +67,10 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
 
 #pragma mark - 重写layoutAttributesForElementsInRect
 - (NSArray<UICollectionViewLayoutAttributes *> *)layoutAttributesForElementsInRect:(CGRect)rect {
+    // 判断是否要末尾对齐
+    if (self.needAlignTheTail) {
+        [self alignTheEndItems];
+    }
     return self.attrsArray;
 }
 
@@ -97,6 +106,13 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
     // 赋值frame
     attrs.frame = CGRectMake(X, Y, itemWidth, itemHeight);
     
+    // columnAttrsArray中始终存放排列在最下面，即末尾的item的UICollectionViewLayoutAttributes实例
+    if (self.columnAttrsArray.count < self.columnCount) {
+        [self.columnAttrsArray addObject:attrs];
+    } else {
+        [self.columnAttrsArray replaceObjectAtIndex:destColumn withObject:attrs];
+    }
+        
     // 更新最短的那列高度(每次调用会重新计算)
     self.columnsHeightArray[destColumn] = @(CGRectGetMaxY(attrs.frame));
     if (self.contentHeight < [self.columnsHeightArray[destColumn] doubleValue]) {
@@ -108,7 +124,20 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
 
 #pragma mark - 重写collectionViewContentSize
 - (CGSize)collectionViewContentSize {
-    return CGSizeMake(0, self.contentHeight + self.contentEdgeInsets.bottom);
+    return CGSizeMake(0,  self.contentHeight + self.contentEdgeInsets.bottom);
+}
+
+#pragma mark - 末尾对齐alignTheEndItems
+- (void)alignTheEndItems {
+    for (int i = 0; i < self.columnAttrsArray.count; i++) {
+        UICollectionViewLayoutAttributes *attrs = self.columnAttrsArray[i];
+        NSIndexPath *indexPath = attrs.indexPath;
+        // 重置frame做到末尾对齐
+        CGRect rect = attrs.frame;
+        rect.size.height += self.contentHeight - CGRectGetMaxY(rect);
+        attrs.frame = rect;
+        [self.attrsArray replaceObjectAtIndex:indexPath.item withObject:attrs];
+    }
 }
 
 #pragma mark - getter
@@ -157,6 +186,13 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
         _columnsHeightArray = [NSMutableArray array];
     }
     return _columnsHeightArray;
+}
+
+- (NSMutableArray<UICollectionViewLayoutAttributes *> *)columnAttrsArray {
+    if (!_columnAttrsArray) {
+        _columnAttrsArray = [NSMutableArray array];
+    }
+    return _columnAttrsArray;
 }
 
 @end

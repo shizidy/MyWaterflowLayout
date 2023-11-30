@@ -36,7 +36,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface WaterFlowLayout : UICollectionViewLayout
 
+/// WaterFlowLayoutDelegate
 @property (nonatomic, weak) id <WaterFlowLayoutDelegate> delegate;
+
+/// 是否需要尾部对齐
+@property (nonatomic, assign) BOOL needAlignTheTail;
 
 @end
 

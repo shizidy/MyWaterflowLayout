@@ -27,6 +27,9 @@
     // 实例化layout
     TagsLabelLayout *layout = [[TagsLabelLayout alloc] init];
     layout.delegate = self;
+    // 是否要末尾对齐
+    layout.needAlignTheTail = YES;
+    
     // 创建collectionView
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:self.view.bounds collectionViewLayout:layout];
     collectionView.dataSource = self;
@@ -79,7 +82,7 @@
 }
 
 - (UIEdgeInsets)edgeInsetsInTagsLabelLayout:(UICollectionViewLayout *)layout {
-    return UIEdgeInsetsMake(0, 0, 0, 0);
+    return UIEdgeInsetsMake(10, 10, 10, 10);
 }
 
 #pragma mark - UICollectionViewDelegateFlowLayout

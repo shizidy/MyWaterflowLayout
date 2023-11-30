@@ -35,7 +35,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface TagsLabelLayout : UICollectionViewLayout
 
+/// TagsLabelLayoutDelegate
 @property (nonatomic, weak) id <TagsLabelLayoutDelegate> delegate;
+
+/// 是否需要尾部对齐
+@property (nonatomic, assign) BOOL needAlignTheTail;
 
 @end
 

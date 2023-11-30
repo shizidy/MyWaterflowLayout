@@ -27,6 +27,9 @@
     // 实例化layout
     WaterFlowLayout *layout = [[WaterFlowLayout alloc] init];
     layout.delegate = self;
+    // 是否要末尾对齐
+    layout.needAlignTheTail = YES;
+    
     // 创建collectionView
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:self.view.bounds collectionViewLayout:layout];
     collectionView.dataSource = self;

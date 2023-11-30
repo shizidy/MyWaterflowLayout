@@ -20,7 +20,7 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
 @interface TagsLabelLayout ()
 
 /// 存放所有cell的布局属性
-@property (nonatomic, strong) NSMutableArray *attrsArray;
+@property (nonatomic, strong) NSMutableArray<UICollectionViewLayoutAttributes *> *attrsArray;
 /// 内容高度
 @property (nonatomic, assign) CGFloat contentHeight;
 /// 行边距
@@ -31,9 +31,9 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
 @property (nonatomic, assign) UIEdgeInsets contentEdgeInsets;
 /// item的高度
 @property (nonatomic, assign) CGFloat itemHeight;
-/// item的宽度
+/// item的宽度MaxX
 @property (nonatomic, assign) CGFloat itemMaxX;
-/// item的最大高度
+/// item的最大高度MaxY
 @property (nonatomic, assign) CGFloat itemMaxY;
 
 @end
@@ -45,11 +45,11 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
     [super prepareLayout];
     
     // 初始化
-    self.itemMaxX = 10;
-    self.itemMaxY = 10;
+    self.itemMaxX = self.contentEdgeInsets.left;
+    self.itemMaxY = self.contentEdgeInsets.top;
+    
     // 清除之前所有的布局属性
     [self.attrsArray removeAllObjects];
-    //
     NSInteger count = [self.collectionView numberOfItemsInSection:0];
     for (int i = 0; i < count; i++) {
         NSIndexPath *indexPath = [NSIndexPath indexPathForItem:i inSection:0];
@@ -70,28 +70,52 @@ static const UIEdgeInsets kDefaultEdgeInsets = {10, 10, 10, 10};
 - (UICollectionViewLayoutAttributes *)layoutAttributesForItemAtIndexPath:(NSIndexPath *)indexPath {
     // 创建布局属性
     UICollectionViewLayoutAttributes *attrs = [UICollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
+    // 获取collectionView的宽度
     CGFloat collectionViewWidth = self.collectionView.frame.size.width;
+    // item的宽度
     CGFloat itemWidth = [self.delegate tagsLabelLayout:self indexPath:indexPath];
-    CGFloat restWidth = collectionViewWidth - self.contentEdgeInsets.left - self.contentEdgeInsets.right - self.columnMargin - self.itemMaxX - 10;
+    // 当前行剩余宽度
+    CGFloat restWidth = collectionViewWidth - self.itemMaxX - self.columnMargin - self.contentEdgeInsets.right;
     
     if (restWidth >= itemWidth) {  // 不换行
-        if (self.itemMaxX != 10) {
+        if (self.itemMaxX != self.contentEdgeInsets.left) {
            self.itemMaxX += itemWidth + self.columnMargin;
         }
     } else {  // 换行
-        self.itemMaxX = 10;
-        if (self.itemMaxY != 10) {
+        // 重置itemMaxX
+        self.itemMaxX = self.contentEdgeInsets.left;
+        if (self.itemMaxY != self.contentEdgeInsets.top) {
             self.itemMaxY += self.itemHeight + self.rowMargin;
+        }
+        
+        // 判断是否要末尾对齐
+        if (self.needAlignTheTail) {
+            // 重置上一个item的frame进行末尾对齐
+            UICollectionViewLayoutAttributes *lastAttrs = self.attrsArray.lastObject;
+            CGRect rect = lastAttrs.frame;
+            rect.size.width += restWidth + self.columnMargin;
+            lastAttrs.frame = rect;
+            [self.attrsArray replaceObjectAtIndex:lastAttrs.indexPath.item withObject:lastAttrs];
         }
     }
     
-    CGFloat X = self.itemMaxX == 10 ? 10 : self.itemMaxX - itemWidth;
-    CGFloat Y = self.itemMaxY == 10 ? 10 : self.itemMaxY - self.itemHeight;
+    CGFloat X = self.itemMaxX == self.contentEdgeInsets.left ? self.contentEdgeInsets.left : self.itemMaxX - itemWidth;
+    CGFloat Y = self.itemMaxY == self.contentEdgeInsets.top ? self.contentEdgeInsets.top : self.itemMaxY - self.itemHeight;
     attrs.frame = CGRectMake(X, Y, itemWidth, self.itemHeight);
+    
+    // 判断是否要对最后一个item末尾对齐
+    NSInteger count = [self.collectionView numberOfItemsInSection:0];
+    if (self.needAlignTheTail && indexPath.item == count - 1) {
+        CGRect rect = attrs.frame;
+        rect.size.width += collectionViewWidth - self.itemMaxX - self.contentEdgeInsets.right;
+        attrs.frame = rect;
+    }
+    
     // 给itemMaxX,itemMaxY,contentHeight赋值
     self.itemMaxX = CGRectGetMaxX(attrs.frame);
     self.itemMaxY = CGRectGetMaxY(attrs.frame);
     self.contentHeight = self.itemMaxY + self.contentEdgeInsets.bottom;
+    
     return attrs;
 }
 
