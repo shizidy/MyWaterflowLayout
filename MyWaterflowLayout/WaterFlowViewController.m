@@ -19,10 +19,12 @@
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor orangeColor];
     
+    // 创建UI
     [self setUI];
     // Do any additional setup after loading the view.
 }
 
+#pragma mark - setUI
 - (void)setUI {
     // 实例化layout
     WaterFlowLayout *layout = [[WaterFlowLayout alloc] init];
